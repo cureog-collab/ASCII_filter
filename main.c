@@ -125,5 +125,5 @@ void toAscii(int height, int width, pixelRGB image[height][width], FILE *out)
 }
 
 // TODO: try other methods to handle scaling and loss-of-detail issues
-// add an option to invert the image
+// TODO: add an option to invert the image
 // TODO: try using colors to elevate the output
