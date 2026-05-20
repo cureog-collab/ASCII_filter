@@ -1,35 +1,55 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <getopt.h>
+#include <stdbool.h>
+
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h" 
+#include "stb_image.h"
 
-typedef struct
-{
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
-} pixelRGB;
+#include "core.h"
 
-// `^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$
+#define MAX_FILTERS 7
 
-void grayscale(int height, int width, pixelRGB image[height][width]);
-void toAscii(int height, int width, pixelRGB image[height][width], FILE *out);
-int naming(char *outName, char *name, int length);
+int naming(char *outName, char *name, bool flags[256]);
 
-const char *BLOCKS = "`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
+// define valid filter flags
+const char *filtersList = "npidme";
 
 int main(int argc, char *argv[])
 {
-    if (argc != 2)
+
+    // extract the input flag and check its validity
+    int opt;
+    bool flags[256] = {false}; 
+    bool hasFlag = false;
+    while ((opt = getopt(argc, argv, filtersList)) != -1)
     {
-        printf("Usage: %s <image_file>\n", argv[0]);
-        return 1;
+        if (opt == '?')
+        {
+            printf("Invalid filter!\n");
+            return 1;
+        }
+        hasFlag = true;
+        flags[opt] = true;
+    }
+
+    // if no flags are used, do normal ASCII filter
+    if (!hasFlag)
+    {
+        flags['n'] = true;
     }
     
+    // check if the user has entered an image
+    if (optind >= argc)
+    {
+        printf("Usage: %s [flags]... <image_name>\n", argv[0]);
+        return 1;
+    }
+
     // make a copy of the input image for use
     int width, height, channels;
-    char *name = argv[1];
+    char *name = argv[optind];
     int length = strlen(name);
     unsigned char *img = stbi_load(name, &width, &height, &channels, 3);
     if (img == NULL)
@@ -43,7 +63,7 @@ int main(int argc, char *argv[])
 
     char outName[256];
     
-    if (naming(outName, name, length) != 0)
+    if (naming(outName, name, flags) != 0)
     {
         printf("Cannot generate txt file name!\n");
         stbi_image_free(image);
@@ -58,7 +78,36 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    // grayscale the whole thing to get started
     grayscale(height, width, image);
+
+    // call flagged filters
+    if (flags['e'])
+    {
+        edge(height, width, image);
+    }
+
+    if (flags['m'])
+    {
+        emboss(height, width, image);
+    }
+
+    if (flags['p'])
+    {
+        posterize(height, width, image);
+    }
+
+    if (flags['d'])
+    {
+        dither(height, width, image);
+    }
+
+    if (flags['i'])
+    {
+        invert(height, width, image);
+    }
+    
+    // transform the whole thing to ASCII art
     toAscii(height, width, image, outputFile);
 
     fclose(outputFile);
@@ -66,64 +115,45 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-// name the file from "###.jpg" (or "###.jpeg"...) to "###.txt"
-int naming(char *outName, char *name, int length)
+// name the file from "###.jpg" to "###abc.txt" based on active flags (-a -b -c)
+int naming(char *outName, char *name, bool flags[256])
 {
-    // remove the images/ init
+    int filtersLen = strlen(filtersList);
+
+    // identify the images/ init (if there is any) and extract the "naked" image file name
     char *slsh = strrchr(name, '/');
     char *fileName = (slsh != NULL) ? slsh + 1 : name;
 
     strcpy(outName, fileName);
 
+    // identify the .jpg (or .png, .jpeg...)
     char *dot = strrchr(outName, '.');
-    if (dot != NULL)
+    if (dot == NULL)
     {
-        dot[1] = 't';
-        dot[2] = 'x';
-        dot[3] = 't';
-        dot[4] = '\0';
-        return 0;
+        return 1;
     }
-    return 1;
-}
 
-// apply the grayscale filter
-void grayscale(int height, int width, pixelRGB image[height][width])
-{
-    for (int row = 0; row < height; row++)
+    // slice of the file type "tail"
+    *dot = '\0';
+
+    // prepare the list of suffixes for the name (called filters)
+    char suffixes[MAX_FILTERS + 5];
+    int i = 0;
+    for (int j = 0; j < filtersLen; j++)
     {
-        for (int col = 0; col < width; col++)
+        if (flags[filtersList[j]])
         {
-            // calculate perceived brightness of each pixel
-            // >> 8 is used in place of / 256 for speed
-            unsigned char bright = (77 * image[row][col].r + 150 * image[row][col].g + 29 * image[row][col].b)  >> 8;
-            image[row][col].r = bright;
-            image[row][col].g = bright;
-            image[row][col].b = bright;
+            suffixes[i] = filtersList[j];
+            i++;
         }
     }
+    suffixes[i] = '.';
+    suffixes[i + 1] = 't';
+    suffixes[i + 2] = 'x';
+    suffixes[i + 3] = 't';
+    suffixes[i + 4] = '\0';
+
+    // construct the final name
+    strcat(outName, suffixes);
+    return 0;
 }
-
-// generate ASCII image result
-void toAscii(int height, int width, pixelRGB image[height][width], FILE *out)
-{
-    const size_t MAX = strlen(BLOCKS);
-
-    for (int row = 0; row < height; row += 3)
-    {
-        for (int col = 0; col < width; col += 1)
-        {
-            // map the pixel's brightness to the "ASCII brightness"
-            int bright = image[row][col].r;
-            int charPos = (bright * MAX) >> 8;
-
-            // write the corresponding ASCII character to the output file
-            fputc(BLOCKS[charPos], out);
-        }
-        fprintf(out, "\n");
-    }
-}
-
-// TODO: try other methods to handle scaling and loss-of-detail issues
-// TODO: add an option to invert the image
-// TODO: try using colors to elevate the output
