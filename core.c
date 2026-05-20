@@ -1,8 +1,14 @@
 #include <string.h>
 #include "core.h"
 
-// `^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$
-const char *BLOCKS = "`^\",:;Il!i~+_-?][}{1)(|\\/*#&8%@$";
+// .`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$
+const char *BLOCKS = " .`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
+
+/* TODO: let user choose between:
+full range:    " .`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
+balanced:      " .',:;+*?%S#M@"
+high contrast: " .:-=+*#%@"
+*/
 
 // apply the grayscale filter
 void grayscale(int height, int width, pixelRGB image[height][width])
@@ -22,6 +28,7 @@ void grayscale(int height, int width, pixelRGB image[height][width])
 }
 
 // generate ASCII image result
+// TODO: try other methods to handle scaling and loss-of-detail issues
 void toAscii(int height, int width, pixelRGB image[height][width], FILE *out)
 {
     const size_t MAX = strlen(BLOCKS);
@@ -40,8 +47,6 @@ void toAscii(int height, int width, pixelRGB image[height][width], FILE *out)
         fprintf(out, "\n");
     }
 }
-
-// TODO: try other methods to handle scaling and loss-of-detail issues
 
 // edge detection filter
 void edge(int height, int width, pixelRGB image[height][width])
