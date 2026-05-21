@@ -1,11 +1,23 @@
 #include <string.h>
 #include "core.h"
 
+int takeSample(int height, int width, int row, int col, int boxH, int boxW, pixelRGB image[height][width]);
+
 // .`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$
 const char *ASCII_BLOCKS[] = {
+    // Level 1: Ultra Detail
     " .`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$",
-    " .',:;+*?%S#M@",
-    " .:-=+*#%@",
+
+    // Level 2: Smooth / Soft Grayscale
+    " .`',:;i~_-?|/cxUJQ0Owmdb*#MW8B@$",
+
+    // Level 3: Balanced
+    ".',:;+*?%S#",
+
+    // Level 4: High Contrast
+    " .:-=+*#@",
+
+    // Level 5: Stencil
     "  .#@"
 };
 
@@ -37,12 +49,21 @@ void toAscii(int height, int width, pixelRGB image[height][width], FILE *out, in
     int sampleH = 3;
     int sampleW = 1;
 
-    for (int row = 0; row < height; row += sampleH)
+    // locate start and end positions for scanning
+    int startY = sampleH / 2;
+    int startX = sampleW / 2;
+    int endY = height - (sampleH / 2);
+    int endX = width - (sampleW / 2);
+
+    for (int row = startY; row <= endY; row += sampleH)
     {
-        for (int col = 0; col < width; col += sampleW)
+        for (int col = startX; col <= endX; col += sampleW)
         {
+            // averages brightness in each sample box of size sampleW * sampleH
+            int bright = takeSample(height, width, row, col, sampleH, sampleW, image);
+            
             // map the pixel's brightness to the "ASCII brightness"
-            int bright = image[row][col].r;
+            image[row][col].r = bright;
             int charPos = (bright * MAX) >> 8;
 
             // write the corresponding ASCII character to the output file
@@ -85,4 +106,22 @@ void invert(int height, int width, pixelRGB image[height][width])
 {
     // TODO
     printf("invert\n");
+}
+
+int takeSample(int height, int width, int row, int col, int boxH, int boxW, pixelRGB image[height][width])
+{
+    int sum = 0;
+    int pixels = 0;
+    for (int i = row - (boxH / 2); i <= row + (boxH / 2); i++)
+    {
+        for (int j = col - (boxW / 2); j <= col + (boxW / 2); j++)
+        {
+            if (!(i < 0 || i > height || j < 0 || j > width))
+            {
+                pixels++;
+                sum += image[i][j].r;
+            }
+        }
+    }
+    return sum / pixels;
 }

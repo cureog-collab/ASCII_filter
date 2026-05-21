@@ -42,9 +42,9 @@ int main(int argc, char *argv[])
         if (opt == 'c')
         {
             int contrastCalled = atoi(optarg);
-            if (contrastCalled < 1 || contrastCalled > 4)
+            if (contrastCalled < 1 || contrastCalled > 5)
             {
-                printf("Invalid contrast level, please choose a level from 1 through 4.\n");
+                printf("Invalid contrast level, please choose a level from 1 through 5.\n");
                 return 1;
             }
             contrastLevel = contrastCalled;
@@ -160,7 +160,7 @@ int naming(char *outName, char *name, bool flags[256], int contrastLevel)
     int i = 0;
     for (int j = 0; j < filtersLen; j++)
     {
-        if (flags[filtersList[j]])
+        if (flags[filtersList[j]] && filtersList[j] != 'c')
         {
             suffixes[i] = filtersList[j];
             i++;
