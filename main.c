@@ -14,7 +14,7 @@
 int naming(char *outName, char *name, bool flags[256], int contrastLevel);
 
 // define valid filter flags
-const char *filtersList = "npidmec:";
+const char *filtersList = "npid:mec:";
 
 int main(int argc, char *argv[])
 {
@@ -22,6 +22,7 @@ int main(int argc, char *argv[])
     // extract the input flag and check its validity
     int opt;
     int contrastLevel = 3;
+    int ditherLvls = 8;
     bool flags[256] = {false}; 
     bool hasFlag = false;
     while ((opt = getopt(argc, argv, filtersList)) != -1)
@@ -44,10 +45,21 @@ int main(int argc, char *argv[])
             int contrastCalled = atoi(optarg);
             if (contrastCalled < 1 || contrastCalled > 5)
             {
-                printf("Invalid contrast level, please choose a level from 1 through 5.\n");
+                printf("Invalid contrast level, please choose a number from 1 through 5.\n");
                 return 1;
             }
             contrastLevel = contrastCalled;
+        }
+        // check if the user want to call dither filter and modify it accordingly
+        else if (opt == 'd')
+        {
+            int ditherCalled = atoi(optarg);
+            if (ditherCalled < 2 || ditherCalled > 15)
+            {
+                printf("Invalid dither levels, please choose a number from 1 through 15.\n");
+                return 1;
+            }
+            ditherLvls = ditherCalled;
         }
     }
 
@@ -117,7 +129,7 @@ int main(int argc, char *argv[])
 
     if (flags['d'])
     {
-        dither(height, width, image);
+        dither(height, width, image, ditherLvls);
     }
 
     if (flags['i'])
@@ -154,9 +166,8 @@ int naming(char *outName, char *name, bool flags[256], int contrastLevel)
     // slice off the file type "tail"
     *dot = '\0';
 
-    // prepare the list of suffixes for the name (called filters)
+    // prepare the list of suffixes for the name
     char suffixes[MAX_FILTERS + 6];
-    char buffer[sizeof(int)];
     int i = 0;
     for (int j = 0; j < filtersLen; j++)
     {
@@ -166,13 +177,7 @@ int naming(char *outName, char *name, bool flags[256], int contrastLevel)
             i++;
         }
     }
-    sprintf(buffer, "%i", contrastLevel);
-    suffixes[i] = *buffer;
-    suffixes[i + 1] = '.';
-    suffixes[i + 2] = 't';
-    suffixes[i + 3] = 'x';
-    suffixes[i + 4] = 't';
-    suffixes[i + 5] = '\0';
+    snprintf(&suffixes[i], sizeof(suffixes) - i, "%d.txt", contrastLevel);
 
     // construct the final name
     strcat(outName, suffixes);

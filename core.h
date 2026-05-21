@@ -27,7 +27,7 @@ void emboss(int height, int width, pixelRGB image[height][width]);
 void posterize(int height, int width, pixelRGB image[height][width]);
 
 // dither filter
-void dither(int height, int width, pixelRGB image[height][width]);
+void dither(int height, int width, pixelRGB image[height][width], int calledDivs);
 
 // invert filter
 void invert(int height, int width, pixelRGB image[height][width]);
