@@ -8,6 +8,10 @@ int takeSample(int height, int width, int row, int col, int boxH, int boxW, pixe
 int clamp(int x);
 int findNearest(int x, int list[], int length);
 
+int sobelGx(int height, int width, int row, int col, pixelRGB ref[height][width]);
+int sobelGy(int height, int width, int row, int col, pixelRGB ref[height][width]);\
+int sobelAvg(int x, int y);
+
 // .`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$
 const char *ASCII_BLOCKS[] = {
     // Level 1: Ultra Detail
@@ -16,7 +20,7 @@ const char *ASCII_BLOCKS[] = {
     // Level 2: Smooth / Soft Grayscale
     " .`',:;i~_-?|/cxUJQ0Owmdb*#MW8B@$",
 
-    // Level 3: Balanced
+    // Level 3: Balanced (default)
     ".',:;+*?%S#",
 
     // Level 4: High Contrast
@@ -79,10 +83,41 @@ void toAscii(int height, int width, pixelRGB image[height][width], FILE *out, in
 }
 
 // edge detection filter
+// use Sobel operator
 void edge(int height, int width, pixelRGB image[height][width])
 {
-    // TODO
-    printf("edge\n");
+    // copy the original image
+    pixelRGB (*ref)[width] = malloc(height * width * sizeof(pixelRGB));
+    if (ref == NULL)
+    {
+        printf("Cannot allocate memory!\n");
+        return;
+    }
+
+    for (int row = 0; row < height; row++)
+    {
+        for (int col = 0; col < width; col++)
+        {
+            ref[row][col] = image[row][col];
+        }
+    }
+
+    //apply the Sobel op
+    int gxVal;
+    int gyVal;
+    for (int row = 0; row < height; row++)
+    {
+        for (int col = 0; col < width; col++)
+        {
+            gxVal = sobelGx(height, width, row, col, ref);
+            gyVal = sobelGy(height, width, row, col, ref);
+            image[row][col].r = sobelAvg(gxVal, gyVal);
+            image[row][col].g = image[row][col].r;
+            image[row][col].b = image[row][col].r;
+        }
+    }
+
+    free(ref);
 }
 
 // emboss filter
@@ -92,11 +127,11 @@ void emboss(int height, int width, pixelRGB image[height][width])
     printf("emboss\n");
 }
 
-// posterize filter
-void posterize(int height, int width, pixelRGB image[height][width])
+// vector file mapping filter
+void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
 {
     // TODO
-    printf("posterize\n");
+    printf("vector file mapping\n");
 }
 
 // dither filter
@@ -233,4 +268,49 @@ int findNearest(int x, int list[], int length)
         }
     }
     return nearestIndex;
+}
+
+// Sobel Gx kernel
+int sobelGx(int height, int width, int row, int col, pixelRGB ref[height][width])
+{
+    int output = 0;
+    int factor = 0;
+    for (int vNear = row - 1; vNear <= row + 1; vNear++)
+    {
+        for (int hNear = col - 1; hNear <= col + 1; hNear += 2)
+        {
+            if (hNear >= 0 && hNear <= width - 1 && vNear >= 0 && vNear <= height - 1)
+            {
+                factor = (hNear - col) * (abs(vNear - row) * -1 + 2);
+                // summing them up gradually
+                output += factor * ref[vNear][hNear].r;
+            }
+        }
+    }
+    return output;
+}
+
+// Sobel Gy kernel
+int sobelGy(int height, int width, int row, int col, pixelRGB ref[height][width])
+{
+    int output = 0;
+    int factor = 0;
+    for (int hNear = col - 1; hNear <= col + 1; hNear++)
+    {
+        for (int vNear = row - 1; vNear <= row + 1; vNear += 2)
+        {
+            if (hNear >= 0 && hNear <= width - 1 && vNear >= 0 && vNear <= height - 1)
+            {
+                factor = (vNear - row) * (abs(hNear - col) * -1 + 2);
+                // summing them up gradually
+                output += factor * ref[vNear][hNear].r;
+            }
+        }
+    }
+    return output;
+}
+
+int sobelAvg(int x, int y)
+{
+    return clamp(round(sqrt(x * x + y * y)));
 }

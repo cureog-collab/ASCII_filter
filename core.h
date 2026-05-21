@@ -17,14 +17,14 @@ void grayscale(int height, int width, pixelRGB image[height][width]);
 // normal image-to-ASCII filter
 void toAscii(int height, int width, pixelRGB image[height][width], FILE *out, int contrastLvl);
 
+// vector file mapping filter
+void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out);
+
 // edge detection filter
 void edge(int height, int width, pixelRGB image[height][width]);
 
 // emboss filter
 void emboss(int height, int width, pixelRGB image[height][width]);
-
-// posterize filter
-void posterize(int height, int width, pixelRGB image[height][width]);
 
 // dither filter
 void dither(int height, int width, pixelRGB image[height][width], int calledDivs);

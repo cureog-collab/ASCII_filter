@@ -11,10 +11,10 @@
 
 #define MAX_FILTERS 16
 
-int naming(char *outName, char *name, bool flags[256], int contrastLevel);
+int naming(char *outName, char *name, bool flags[256], int contrastLevel, int ditherLevels);
 
 // define valid filter flags
-const char *filtersList = "npid:mec:";
+const char *filtersList = "nvid:mec:";
 
 int main(int argc, char *argv[])
 {
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
             int ditherCalled = atoi(optarg);
             if (ditherCalled < 2 || ditherCalled > 15)
             {
-                printf("Invalid dither levels, please choose a number from 1 through 15.\n");
+                printf("Invalid dither levels, please choose a number from 2 through 15.\n");
                 return 1;
             }
             ditherLvls = ditherCalled;
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
     // holder for output file name
     char outName[256];
     
-    if (naming(outName, name, flags, contrastLevel) != 0)
+    if (naming(outName, name, flags, contrastLevel, ditherLvls) != 0)
     {
         printf("Cannot generate txt file name!\n");
         stbi_image_free(image);
@@ -122,11 +122,6 @@ int main(int argc, char *argv[])
         emboss(height, width, image);
     }
 
-    if (flags['p'])
-    {
-        posterize(height, width, image);
-    }
-
     if (flags['d'])
     {
         dither(height, width, image, ditherLvls);
@@ -137,8 +132,15 @@ int main(int argc, char *argv[])
         invert(height, width, image);
     }
     
+    if (flags['v'])
+    {
+        vectorMap(height, width, image, outputFile);
+    }
+    else
+    {
+        toAscii(height, width, image, outputFile, contrastLevel);
+    }
     // transform the whole thing to ASCII art
-    toAscii(height, width, image, outputFile, contrastLevel);
 
     fclose(outputFile);
     stbi_image_free(image);
@@ -146,7 +148,7 @@ int main(int argc, char *argv[])
 }
 
 // name the file from "###.jpg" to "###abc.txt" based on active flags (-a -b -c)
-int naming(char *outName, char *name, bool flags[256], int contrastLevel)
+int naming(char *outName, char *name, bool flags[256], int contrastLevel, int ditherLevels)
 {
     int filtersLen = strlen(filtersList);
 
@@ -167,7 +169,7 @@ int naming(char *outName, char *name, bool flags[256], int contrastLevel)
     *dot = '\0';
 
     // prepare the list of suffixes for the name
-    char suffixes[MAX_FILTERS + 6];
+    char suffixes[MAX_FILTERS + 8];
     int i = 0;
     for (int j = 0; j < filtersLen; j++)
     {
@@ -177,8 +179,14 @@ int naming(char *outName, char *name, bool flags[256], int contrastLevel)
             i++;
         }
     }
-    snprintf(&suffixes[i], sizeof(suffixes) - i, "%d.txt", contrastLevel);
-
+    if (flags['d'])
+    {
+        snprintf(&suffixes[i], sizeof(suffixes) - i, "%d_%d.txt", contrastLevel, ditherLevels);
+    }
+    else
+    {
+        snprintf(&suffixes[i], sizeof(suffixes) - i, "%d.txt", contrastLevel);
+    }
     // construct the final name
     strcat(outName, suffixes);
     return 0;
