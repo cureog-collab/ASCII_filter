@@ -9,18 +9,19 @@
 
 #include "core.h"
 
-#define MAX_FILTERS 7
+#define MAX_FILTERS 16
 
-int naming(char *outName, char *name, bool flags[256]);
+int naming(char *outName, char *name, bool flags[256], int contrastLevel);
 
 // define valid filter flags
-const char *filtersList = "npidme";
+const char *filtersList = "npidmec:";
 
 int main(int argc, char *argv[])
 {
 
     // extract the input flag and check its validity
     int opt;
+    int contrastLevel = 3;
     bool flags[256] = {false}; 
     bool hasFlag = false;
     while ((opt = getopt(argc, argv, filtersList)) != -1)
@@ -30,8 +31,24 @@ int main(int argc, char *argv[])
             printf("Invalid filter!\n");
             return 1;
         }
+
+        // signify the user has used at least one flag
         hasFlag = true;
+
+        // turn on the called flags
         flags[opt] = true;
+
+        // check if the user wants to modify contrast level
+        if (opt == 'c')
+        {
+            int contrastCalled = atoi(optarg);
+            if (contrastCalled < 1 || contrastCalled > 4)
+            {
+                printf("Invalid contrast level, please choose a level from 1 through 4.\n");
+                return 1;
+            }
+            contrastLevel = contrastCalled;
+        }
     }
 
     // if no flags are used, do normal ASCII filter
@@ -61,9 +78,10 @@ int main(int argc, char *argv[])
     // cast the output of stb_image's img read func to a 2D array of pixelRGBs
     pixelRGB (*image)[width] = (pixelRGB (*)[width])img;
 
+    // holder for output file name
     char outName[256];
     
-    if (naming(outName, name, flags) != 0)
+    if (naming(outName, name, flags, contrastLevel) != 0)
     {
         printf("Cannot generate txt file name!\n");
         stbi_image_free(image);
@@ -108,7 +126,7 @@ int main(int argc, char *argv[])
     }
     
     // transform the whole thing to ASCII art
-    toAscii(height, width, image, outputFile);
+    toAscii(height, width, image, outputFile, contrastLevel);
 
     fclose(outputFile);
     stbi_image_free(image);
@@ -116,7 +134,7 @@ int main(int argc, char *argv[])
 }
 
 // name the file from "###.jpg" to "###abc.txt" based on active flags (-a -b -c)
-int naming(char *outName, char *name, bool flags[256])
+int naming(char *outName, char *name, bool flags[256], int contrastLevel)
 {
     int filtersLen = strlen(filtersList);
 
@@ -133,11 +151,12 @@ int naming(char *outName, char *name, bool flags[256])
         return 1;
     }
 
-    // slice of the file type "tail"
+    // slice off the file type "tail"
     *dot = '\0';
 
     // prepare the list of suffixes for the name (called filters)
-    char suffixes[MAX_FILTERS + 5];
+    char suffixes[MAX_FILTERS + 6];
+    char buffer[sizeof(int)];
     int i = 0;
     for (int j = 0; j < filtersLen; j++)
     {
@@ -147,11 +166,13 @@ int naming(char *outName, char *name, bool flags[256])
             i++;
         }
     }
-    suffixes[i] = '.';
-    suffixes[i + 1] = 't';
-    suffixes[i + 2] = 'x';
-    suffixes[i + 3] = 't';
-    suffixes[i + 4] = '\0';
+    sprintf(buffer, "%i", contrastLevel);
+    suffixes[i] = *buffer;
+    suffixes[i + 1] = '.';
+    suffixes[i + 2] = 't';
+    suffixes[i + 3] = 'x';
+    suffixes[i + 4] = 't';
+    suffixes[i + 5] = '\0';
 
     // construct the final name
     strcat(outName, suffixes);

@@ -2,13 +2,12 @@
 #include "core.h"
 
 // .`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$
-const char *BLOCKS = " .`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
-
-/* TODO: let user choose between:
-full range:    " .`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
-balanced:      " .',:;+*?%S#M@"
-high contrast: " .:-=+*#%@"
-*/
+const char *ASCII_BLOCKS[] = {
+    " .`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$",
+    " .',:;+*?%S#M@",
+    " .:-=+*#%@",
+    "  .#@"
+};
 
 // apply the grayscale filter
 void grayscale(int height, int width, pixelRGB image[height][width])
@@ -29,13 +28,18 @@ void grayscale(int height, int width, pixelRGB image[height][width])
 
 // generate ASCII image result
 // TODO: try other methods to handle scaling and loss-of-detail issues
-void toAscii(int height, int width, pixelRGB image[height][width], FILE *out)
+void toAscii(int height, int width, pixelRGB image[height][width], FILE *out, int contrastLvl)
 {
+    const char *BLOCKS = ASCII_BLOCKS[contrastLvl - 1];
     const size_t MAX = strlen(BLOCKS);
 
-    for (int row = 0; row < height; row += 3)
+    // sample box for sampling pixels
+    int sampleH = 3;
+    int sampleW = 1;
+
+    for (int row = 0; row < height; row += sampleH)
     {
-        for (int col = 0; col < width; col += 1)
+        for (int col = 0; col < width; col += sampleW)
         {
             // map the pixel's brightness to the "ASCII brightness"
             int bright = image[row][col].r;

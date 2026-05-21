@@ -15,7 +15,7 @@ typedef struct
 void grayscale(int height, int width, pixelRGB image[height][width]);
 
 // normal image-to-ASCII filter
-void toAscii(int height, int width, pixelRGB image[height][width], FILE *out);
+void toAscii(int height, int width, pixelRGB image[height][width], FILE *out, int contrastLvl);
 
 // edge detection filter
 void edge(int height, int width, pixelRGB image[height][width]);
