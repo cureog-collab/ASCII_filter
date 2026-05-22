@@ -187,7 +187,7 @@ void dither(int height, int width, pixelRGB image[height][width], int calledDivs
 
             // calculate new brightness and its quantization error thereof
             newBright = shades[findNearest(oldBright, shades, NUM_LEVELS)];
-            errCoeff = (oldBright - newBright) / 8;
+            errCoeff = (oldBright - newBright) / (float) 8;
 
             // assign new brightness for the current pixel
             image[row][col].r = newBright;
