@@ -1,6 +1,4 @@
-#include <string.h>
 #include <math.h>
-#include <stdlib.h>
 #include "core.h"
 
 int takeSample(int height, int width, int row, int col, int boxH, int boxW, pixelRGB image[height][width]);
@@ -9,8 +7,12 @@ int clamp(int x);
 int findNearest(int x, int list[], int length);
 
 int sobelGx(int height, int width, int row, int col, pixelRGB ref[height][width]);
-int sobelGy(int height, int width, int row, int col, pixelRGB ref[height][width]);\
+int sobelGy(int height, int width, int row, int col, pixelRGB ref[height][width]);
 int sobelAvg(int x, int y);
+
+int shineLight(int height, int width, int row, int col, pixelRGB ref[height][width]);
+// Hàm kiểm tra tọa độ có nằm trong bức ảnh hay không
+bool isValid(int posY, int posX, int height, int width);
 
 // .`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$
 const char *ASCII_BLOCKS[] = {
@@ -123,8 +125,34 @@ void edge(int height, int width, pixelRGB image[height][width])
 // emboss filter
 void emboss(int height, int width, pixelRGB image[height][width])
 {
-    // TODO
-    printf("emboss\n");
+    // copy the original image
+    pixelRGB (*ref)[width] = malloc(height * width * sizeof(pixelRGB));
+    if (ref == NULL)
+    {
+        printf("Cannot allocate memory!\n");
+        return;
+    }
+
+    for (int row = 0; row < height; row++)
+    {
+        for (int col = 0; col < width; col++)
+        {
+            ref[row][col] = image[row][col];
+        }
+    }
+
+    // "shine" light from -45 degree onto the image
+    for (int row = 0; row < height; row++)
+    {
+        for (int col = 0; col < width; col++)
+        {
+            image[row][col].r += shineLight(height, width, row, col, ref);
+            image[row][col].g = image[row][col].r;
+            image[row][col].b = image[row][col].r;
+        }
+    }
+
+    free(ref);
 }
 
 // vector file mapping filter
@@ -221,6 +249,8 @@ void invert(int height, int width, pixelRGB image[height][width])
     }
 }
 
+// -- helper funcs --
+
 int takeSample(int height, int width, int row, int col, int boxH, int boxW, pixelRGB image[height][width])
 {
     int sum = 0;
@@ -313,4 +343,25 @@ int sobelGy(int height, int width, int row, int col, pixelRGB ref[height][width]
 int sobelAvg(int x, int y)
 {
     return clamp(round(sqrt(x * x + y * y)));
+}
+
+int shineLight(int height, int width, int row, int col, pixelRGB ref[height][width])
+{
+    int highlight = 0;
+    int shadow = 0;
+
+    // sum the highlight
+    highlight += isValid(row - 2, col - 2, height, width) ? ref[row - 2][col - 2].r : 0;
+    highlight += isValid(row - 1, col - 1, height, width) ? ref[row - 1][col - 1].r : 0;
+
+    // sum the shadow
+    shadow += isValid(row + 2, col + 2, height, width) ? ref[row + 2][col + 2].r : 0;
+    shadow += isValid(row + 1, col + 1, height, width) ? ref[row + 1][col + 1].r : 0;
+    
+    return clamp((highlight - shadow) * 4 + 128);
+}
+
+bool isValid(int posY, int posX, int height, int width)
+{
+    return (posY >= 0 && posY < height && posX >= 0 && posX < width);
 }

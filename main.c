@@ -1,8 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <getopt.h>
-#include <stdbool.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
