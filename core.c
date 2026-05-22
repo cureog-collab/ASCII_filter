@@ -11,7 +11,7 @@ int sobelGy(int height, int width, int row, int col, pixelRGB ref[height][width]
 int sobelAvg(int x, int y);
 
 int shineLight(int height, int width, int row, int col, pixelRGB ref[height][width]);
-// Hàm kiểm tra tọa độ có nằm trong bức ảnh hay không
+
 bool isValid(int posY, int posX, int height, int width);
 
 // .`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$
@@ -146,7 +146,7 @@ void emboss(int height, int width, pixelRGB image[height][width])
     {
         for (int col = 0; col < width; col++)
         {
-            image[row][col].r += shineLight(height, width, row, col, ref);
+            image[row][col].r = shineLight(height, width, row, col, ref);
             image[row][col].g = image[row][col].r;
             image[row][col].b = image[row][col].r;
         }
@@ -309,7 +309,7 @@ int sobelGx(int height, int width, int row, int col, pixelRGB ref[height][width]
     {
         for (int hNear = col - 1; hNear <= col + 1; hNear += 2)
         {
-            if (hNear >= 0 && hNear <= width - 1 && vNear >= 0 && vNear <= height - 1)
+            if (isValid(vNear, hNear, height, width))
             {
                 factor = (hNear - col) * (abs(vNear - row) * -1 + 2);
                 // summing them up gradually
@@ -329,7 +329,7 @@ int sobelGy(int height, int width, int row, int col, pixelRGB ref[height][width]
     {
         for (int vNear = row - 1; vNear <= row + 1; vNear += 2)
         {
-            if (hNear >= 0 && hNear <= width - 1 && vNear >= 0 && vNear <= height - 1)
+            if (isValid(vNear, hNear, height, width))
             {
                 factor = (vNear - row) * (abs(hNear - col) * -1 + 2);
                 // summing them up gradually
@@ -358,7 +358,7 @@ int shineLight(int height, int width, int row, int col, pixelRGB ref[height][wid
     shadow += isValid(row + 2, col + 2, height, width) ? ref[row + 2][col + 2].r : 0;
     shadow += isValid(row + 1, col + 1, height, width) ? ref[row + 1][col + 1].r : 0;
     
-    return clamp((highlight - shadow) * 4 + 128);
+    return clamp((highlight - shadow) * 2 + 128);
 }
 
 bool isValid(int posY, int posX, int height, int width)
