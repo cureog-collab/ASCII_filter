@@ -63,8 +63,8 @@ void toAscii(int height, int width, pixelRGB image[height][width], FILE *out, in
     // locate start and end positions for scanning
     int startY = sampleH / 2;
     int startX = sampleW / 2;
-    int endY = height - (sampleH / 2);
-    int endX = width - (sampleW / 2);
+    int endY = height - 1 - (sampleH / 2);
+    int endX = width - 1 - (sampleW / 2);
 
     for (int row = startY; row <= endY; row += sampleH)
     {
@@ -80,8 +80,89 @@ void toAscii(int height, int width, pixelRGB image[height][width], FILE *out, in
             // write the corresponding ASCII character to the output file
             fputc(BLOCKS[charPos], out);
         }
-        fprintf(out, "\n");
+        fputc('\n', out);
     }
+}
+
+// vector file mapping filter
+void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
+{
+    const char NOISE[4] = {' ', '.', ':', ';'};
+    const char VECTOR_BLOCKS[4][2] = {
+        {'|', '+'},
+        {'\\', '*'},
+        {'-', '+'},
+        {'/', '*'}
+    };
+
+    // making a copy of the original image to work with
+    pixelRGB (*ref)[width] = malloc(height * width * sizeof(pixelRGB));
+    if (ref == NULL)
+    {
+        printf("Cannot allocate memory!\n");
+        return;
+    }
+
+    for (int row = 0; row < height; row++)
+    {
+        for (int col = 0; col < width; col++)
+        {
+            ref[row][col] = image[row][col];
+        }
+    }
+
+    // geometric and amplitude properties of the segment
+    int tuningFactor = 1;
+    int xGrad;
+    int yGrad;
+    int gradMag;
+    int noiseThres = 60;
+    float angleWRTx;
+
+    // preparing for the loop (similar to toAscii())
+    int sampleH = 3;
+    int sampleW = 1;
+    int startY = sampleH / 2;
+    int startX = sampleW / 2;
+    int endY = height - 1 - (sampleH / 2);
+    int endX = width - 1 - (sampleW / 2);
+
+    for (int row = startY; row <= endY; row += sampleH)
+    {
+        for (int col = startX; col <= endX; col += sampleW)
+        {
+            // apply the Sobel kernels to calculate brightness gradient
+            xGrad = tuningFactor * sobelGx(height, width, row, col, ref);
+            yGrad = tuningFactor * sobelGy(height, width, row, col, ref);
+            gradMag = sobelAvg(xGrad, yGrad);
+
+            // calculate angle value in degrees and make sure it is positive
+            angleWRTx = 180 / (float) 3.14159265 * atan2f((float) yGrad, (float) xGrad);
+            if (angleWRTx < 0)
+            {
+                angleWRTx += 180;
+            }
+
+            // if the change is so minute, considers it noise
+            if (gradMag < noiseThres)
+            {
+                int noiseIndx = gradMag / 15;
+                if (noiseIndx > 3)
+                {
+                    noiseIndx = 3;
+                }
+                fputc(NOISE[noiseIndx], out);
+            }
+            // draw
+            else
+            {
+                // TODO
+            }
+        }
+        fputc('\n', out);
+    }
+
+    free(ref);
 }
 
 // edge detection filter
@@ -153,13 +234,6 @@ void emboss(int height, int width, pixelRGB image[height][width])
     }
 
     free(ref);
-}
-
-// vector file mapping filter
-void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
-{
-    // TODO
-    printf("vector file mapping\n");
 }
 
 // dither filter
@@ -259,7 +333,7 @@ int takeSample(int height, int width, int row, int col, int boxH, int boxW, pixe
     {
         for (int j = col - (boxW / 2); j <= col + (boxW / 2); j++)
         {
-            if (!(i < 0 || i > height || j < 0 || j > width))
+            if (isValid(i, j, height, width))
             {
                 pixels++;
                 sum += image[i][j].r;
@@ -342,7 +416,8 @@ int sobelGy(int height, int width, int row, int col, pixelRGB ref[height][width]
 
 int sobelAvg(int x, int y)
 {
-    return clamp(round(sqrt(x * x + y * y)));
+    // return clamp(round(sqrt(x * x + y * y)));
+    return clamp(abs(x) + abs(y));
 }
 
 int shineLight(int height, int width, int row, int col, pixelRGB ref[height][width])
