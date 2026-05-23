@@ -1,14 +1,38 @@
 #include <math.h>
 #include "core.h"
 
+// define different types of kernels
+typedef struct {
+    int matrixX[3][3];
+    int matrixY[3][3];
+    char name[10];
+} kernel;
+
+const kernel SOBEL = {
+    {{1, 0, -1}, {2, 0, -2}, {1, 0, -1}},
+    {{1, 2, 1}, {0, 0, 0}, {-1, -2, -1}},
+    "Sobel"
+};
+
+const kernel SCHARR_STD = {
+    {{3, 0, -3}, {10, 0, -10}, {3, 0, -3}},
+    {{3, 10, 3}, {0, 0, 0}, {-3, -10, -3}},
+    "Scharr"
+};
+
+const kernel SCHARR_OPT = {
+    {{47, 0, -47}, {162, 0, -162}, {47, 0, -47}},
+    {{47, 162, 47}, {0, 0, 0}, {-47, -162, -47}},
+    "Scharr"
+};
+
 int takeSample(int height, int width, int row, int col, int boxH, int boxW, pixelRGB image[height][width]);
 
 int clamp(int x);
 int findNearest(int x, int list[], int length);
 
-int sobelGx(int height, int width, int row, int col, pixelRGB ref[height][width]);
-int sobelGy(int height, int width, int row, int col, pixelRGB ref[height][width]);
-int sobelAvg(int x, int y);
+int applyKernel(int height, int width, int row, int col, pixelRGB ref[height][width], const int kernel[3][3]);
+int magnitude(int x, int y);
 
 int shineLight(int height, int width, int row, int col, pixelRGB ref[height][width]);
 
@@ -85,7 +109,7 @@ void toAscii(int height, int width, pixelRGB image[height][width], FILE *out, in
 }
 
 // vector file mapping filter
-// TODO: the filter doesn't work at all. Try adding a Gaussian blur first and modifying the Sobel operators.
+// TODO: the filter doesn't work at all. Try adding a Gaussian blur first and modifying the tuning coefficient to kernels.
 void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
 {
     const float radToDeg = 180 / (float) 3.14159265;
@@ -121,8 +145,8 @@ void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
     int xGrad;
     int yGrad;
     int gradMag;
-    int noiseThres = 255;
-    int strongThres = 500;
+    int noiseThres = 100;
+    int strongThres = 250;
     float angleWRTx;
 
     // preparing for the loop (similar to toAscii())
@@ -138,9 +162,9 @@ void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
         for (int col = startX; col <= endX; col += sampleW)
         {
             // apply the Sobel kernels to calculate brightness gradient
-            xGrad = tuningFactor * sobelGx(height, width, row, col, ref);
-            yGrad = tuningFactor * sobelGy(height, width, row, col, ref);
-            gradMag = sobelAvg(xGrad, yGrad);
+            xGrad = tuningFactor * applyKernel(height, width, row, col, ref, SOBEL.matrixX);
+            yGrad = tuningFactor * applyKernel(height, width, row, col, ref, SOBEL.matrixY);
+            gradMag = magnitude(xGrad, yGrad);
 
             // calculate angle value in degrees and make sure it is positive
             angleWRTx = radToDeg * atan2f((float) xGrad, (float) yGrad);
@@ -187,7 +211,7 @@ void blur(int height, int width, pixelRGB image[height][width])
 }
 
 // edge detection filter
-// use Sobel operator
+// TODO: finetune the filter so it's less noisy
 void edge(int height, int width, pixelRGB image[height][width])
 {
     // copy the original image
@@ -213,9 +237,9 @@ void edge(int height, int width, pixelRGB image[height][width])
     {
         for (int col = 0; col < width; col++)
         {
-            gxVal = sobelGx(height, width, row, col, ref);
-            gyVal = sobelGy(height, width, row, col, ref);
-            image[row][col].r = sobelAvg(gxVal, gyVal);
+            gxVal = applyKernel(height, width, row, col, ref, SOBEL.matrixX);
+            gyVal = applyKernel(height, width, row, col, ref, SOBEL.matrixY);
+            image[row][col].r = magnitude(gxVal, gyVal);
             image[row][col].g = image[row][col].r;
             image[row][col].b = image[row][col].r;
         }
@@ -243,7 +267,7 @@ void emboss(int height, int width, pixelRGB image[height][width])
         }
     }
 
-    // "shine" light from -45 degree onto the image
+    // "shine" light from 135 degree onto the image
     for (int row = 0; row < height; row++)
     {
         for (int col = 0; col < width; col++)
@@ -395,50 +419,31 @@ int findNearest(int x, int list[], int length)
     return nearestIndex;
 }
 
-// Sobel Gx kernel
-int sobelGx(int height, int width, int row, int col, pixelRGB ref[height][width])
+// func to apply a chosen kernel to a pixel
+int applyKernel(int height, int width, int row, int col, pixelRGB ref[height][width], const int kernel[3][3])
 {
     int output = 0;
-    int factor = 0;
-    for (int vNear = row - 1; vNear <= row + 1; vNear++)
+    int vNear;
+    int hNear;
+    for (int i = -1; i <= 1; i++)
     {
-        for (int hNear = col - 1; hNear <= col + 1; hNear += 2)
+        for (int j = -1; j <= 1; j++)
         {
+            vNear = row + i;
+            hNear = col + j;
             if (isValid(vNear, hNear, height, width))
             {
-                factor = (hNear - col) * (abs(vNear - row) * -1 + 2);
-                // summing them up gradually
-                output += factor * ref[vNear][hNear].r;
+                output += ref[vNear][hNear].r * kernel[i + 1][j + 1];
             }
         }
     }
     return output;
 }
 
-// Sobel Gy kernel
-int sobelGy(int height, int width, int row, int col, pixelRGB ref[height][width])
+int magnitude(int x, int y)
 {
-    int output = 0;
-    int factor = 0;
-    for (int hNear = col - 1; hNear <= col + 1; hNear++)
-    {
-        for (int vNear = row - 1; vNear <= row + 1; vNear += 2)
-        {
-            if (isValid(vNear, hNear, height, width))
-            {
-                factor = (vNear - row) * (abs(hNear - col) * -1 + 2);
-                // summing them up gradually
-                output += factor * ref[vNear][hNear].r;
-            }
-        }
-    }
-    return output;
-}
-
-int sobelAvg(int x, int y)
-{
-    // return clamp(abs(x) + abs(y));
-    return clamp(round(sqrt(x * x + y * y)));
+    int mag = round(hypot((double) x, (double) y));
+    return clamp(mag);
 }
 
 int shineLight(int height, int width, int row, int col, pixelRGB ref[height][width])
