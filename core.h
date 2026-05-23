@@ -26,6 +26,9 @@ void toAscii(int height, int width, pixelRGB image[height][width], FILE *out, in
 // vector file mapping filter
 void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out);
 
+// blur filter
+void blur(int height, int width, pixelRGB image[height][width]);
+
 // edge detection filter
 void edge(int height, int width, pixelRGB image[height][width]);
 

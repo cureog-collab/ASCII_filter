@@ -9,7 +9,7 @@
 int naming(char *outName, char *name, bool flags[256], int contrastLevel, int ditherLevels);
 
 // define valid filter flags
-const char *filtersList = "nvid:mec:";
+const char *filtersList = "nbvid:mec:";
 
 int main(int argc, char *argv[])
 {
@@ -107,6 +107,10 @@ int main(int argc, char *argv[])
     grayscale(height, width, image);
 
     // call flagged filters
+    if (flags['b'])
+    {
+        blur(height, width, image);
+    }
     if (flags['e'])
     {
         edge(height, width, image);

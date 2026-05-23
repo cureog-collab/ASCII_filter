@@ -85,15 +85,20 @@ void toAscii(int height, int width, pixelRGB image[height][width], FILE *out, in
 }
 
 // vector file mapping filter
+// TODO: the filter doesn't work at all. Try adding a Gaussian blur first and modifying the Sobel operators.
 void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
 {
+    const float radToDeg = 180 / (float) 3.14159265;
+
     const char NOISE[4] = {' ', '.', ':', ';'};
+    int noiseLvls = sizeof(NOISE) / sizeof(NOISE[0]);
     const char VECTOR_BLOCKS[4][2] = {
+        {'_', '+'},
+        {'/', '*'},
         {'|', '+'},
-        {'\\', '*'},
-        {'-', '+'},
-        {'/', '*'}
+        {'\\', '*'}
     };
+    int angleList[5] = {0, 45, 90, 135, 180};
 
     // making a copy of the original image to work with
     pixelRGB (*ref)[width] = malloc(height * width * sizeof(pixelRGB));
@@ -116,7 +121,8 @@ void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
     int xGrad;
     int yGrad;
     int gradMag;
-    int noiseThres = 60;
+    int noiseThres = 255;
+    int strongThres = 500;
     float angleWRTx;
 
     // preparing for the loop (similar to toAscii())
@@ -137,7 +143,7 @@ void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
             gradMag = sobelAvg(xGrad, yGrad);
 
             // calculate angle value in degrees and make sure it is positive
-            angleWRTx = 180 / (float) 3.14159265 * atan2f((float) yGrad, (float) xGrad);
+            angleWRTx = radToDeg * atan2f((float) xGrad, (float) yGrad);
             if (angleWRTx < 0)
             {
                 angleWRTx += 180;
@@ -146,23 +152,38 @@ void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
             // if the change is so minute, considers it noise
             if (gradMag < noiseThres)
             {
-                int noiseIndx = gradMag / 15;
-                if (noiseIndx > 3)
+                int noiseIndx = (gradMag * noiseLvls) / noiseThres;
+                
+                if (noiseIndx >= noiseLvls)
                 {
-                    noiseIndx = 3;
+                    noiseIndx = noiseLvls - 1;
                 }
-                fputc(NOISE[noiseIndx], out);
+                
+                fputc(NOISE[0], out);
             }
             // draw
             else
             {
-                // TODO
+                int angleIndex = findNearest(round(angleWRTx), angleList, 5);
+                if (angleIndex == 4)
+                {
+                    angleIndex = 0;
+                }
+                int weightIndex = (gradMag > strongThres) ? 1 : 0;
+                fputc(VECTOR_BLOCKS[angleIndex][weightIndex], out);
             }
         }
         fputc('\n', out);
     }
 
     free(ref);
+}
+
+// blur filter
+// TODO: do Gaussian blurring
+void blur(int height, int width, pixelRGB image[height][width])
+{
+    printf("Hello, world\n");
 }
 
 // edge detection filter
@@ -416,8 +437,8 @@ int sobelGy(int height, int width, int row, int col, pixelRGB ref[height][width]
 
 int sobelAvg(int x, int y)
 {
-    // return clamp(round(sqrt(x * x + y * y)));
-    return clamp(abs(x) + abs(y));
+    // return clamp(abs(x) + abs(y));
+    return clamp(round(sqrt(x * x + y * y)));
 }
 
 int shineLight(int height, int width, int row, int col, pixelRGB ref[height][width])
