@@ -82,8 +82,33 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // cast the output of stb_image's img read func to a 2D array of pixelRGBs
-    pixelRGB (*image)[width] = (pixelRGB (*)[width])img;
+    // scaling the image if it's oversized
+    int goalW = 120;
+    void *activeImage = img;
+
+    // check if the image is oversized
+    if (width > goalW)
+    {
+        int goalH = (height * goalW) / (width * 2);
+
+        pixelRGB *scaledFlat = imageScaleDown(height, width, goalH, goalW, (pixelRGB (*)[width])img);
+
+        if (scaledFlat != NULL)
+        {
+            stbi_image_free(img);
+            
+            activeImage = scaledFlat;
+            height = goalH;
+            width = goalW;
+            printf("Image scaled to %d x %d\n", width, height);
+        }
+        else
+        {
+            printf("Scaling failed! System is out of memory. Proceeding with original.\n");
+        }
+    }
+
+    pixelRGB (*image)[width] = (pixelRGB (*)[width]) activeImage;
 
     // holder for output file name
     char outName[256];
@@ -142,7 +167,7 @@ int main(int argc, char *argv[])
     // transform the whole thing to ASCII art
 
     fclose(outputFile);
-    stbi_image_free(image);
+    free(image);
     return 0;
 }
 

@@ -41,4 +41,14 @@ void dither(int height, int width, pixelRGB image[height][width], int calledDivs
 // invert filter
 void invert(int height, int width, pixelRGB image[height][width]);
 
+// global helper functions
+int clamp(int x);
+
+int findNearest(int x, int list[], int length);
+
+bool isValid(int posY, int posX, int height, int width);
+
+// image scaler
+pixelRGB *imageScaleDown(int currH, int currW, int goalH, int goalW, pixelRGB image[currH][currW]);
+
 #endif
