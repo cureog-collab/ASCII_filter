@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
     // check if the user has entered an image
     if (optind >= argc)
     {
-        printf("Usage: %s [flags]... <image_name>\n", argv[0]);
+        printf("Usage: %s [flags]... <image_name> [max_width]\n", argv[0]);
         return 1;
     }
 
@@ -83,23 +83,39 @@ int main(int argc, char *argv[])
     }
 
     // scaling the image if it's oversized
-    int goalW = 120;
+    // default ceiling value
+    int maxW = 1920;
+
+    // check if the user has any desired maxwidth value
+    if (optind + 1 < argc)
+    {
+        int userMaxW = atoi(argv[optind + 1]);
+
+        if (userMaxW > 0)
+        {
+            maxW = userMaxW;
+        }
+        else
+        {
+            printf("Invalid maxwidth provided. Setting maxwidth to default: 1920px.\n");
+        }
+    }
     void *activeImage = img;
 
     // check if the image is oversized
-    if (width > goalW)
+    if (width > maxW)
     {
-        int goalH = (height * goalW) / (width * 2);
+        int maxH = (height * maxW) / (width);
 
-        pixelRGB *scaledFlat = imageScaleDown(height, width, goalH, goalW, (pixelRGB (*)[width])img);
+        pixelRGB *scaledFlat = imageScaleDown(height, width, maxH, maxW, (pixelRGB (*)[width])img);
 
         if (scaledFlat != NULL)
         {
-            stbi_image_free(img);
+            free(img);
             
             activeImage = scaledFlat;
-            height = goalH;
-            width = goalW;
+            height = maxH;
+            width = maxW;
             printf("Image scaled to %d x %d\n", width, height);
         }
         else
@@ -116,7 +132,7 @@ int main(int argc, char *argv[])
     if (naming(outName, name, flags, contrastLevel, ditherLvls) != 0)
     {
         printf("Cannot generate txt file name!\n");
-        stbi_image_free(image);
+        free(image);
         return 1;
     }
     char outPath[512];
