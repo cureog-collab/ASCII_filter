@@ -9,6 +9,20 @@
 
 #include <stdio.h>
 
+static const int GAUSSIAN_KERNEL_3[3][3] = {
+    {1, 2, 1},
+    {2, 4, 2},
+    {1, 2, 1}
+};
+
+static const int GAUSSIAN_KERNEL_5[5][5] = {
+    { 1,  4,  6,  4,  1 },
+    { 4, 16, 24, 16,  4 },
+    { 6, 24, 36, 24,  6 },
+    { 4, 16, 24, 16,  4 },
+    { 1,  4,  6,  4,  1 }
+};
+
 // define pixel type
 typedef struct
 {

@@ -32,12 +32,6 @@ pixelRGB *decimateHalf(int currH, int currW, pixelRGB image[currH][currW], int *
     *nextH = currH / 2;
     *nextW = currW / 2;
 
-    const int GAUSSIAN_KERNEL_3[3][3] = {
-        {1, 2, 1},
-        {2, 4, 2},
-        {1, 2, 1}
-    };
-
     pixelRGB (*newImg)[*nextW] = malloc(*nextH * *nextW * sizeof(pixelRGB));
     if (newImg == NULL)
     {

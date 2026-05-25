@@ -37,6 +37,7 @@ int magnitude(int x, int y);
 int shineLight(int height, int width, int row, int col, pixelRGB ref[height][width]);
 
 bool isValid(int posY, int posX, int height, int width);
+void copyImage(int height, int width, pixelRGB src[height][width], pixelRGB dst[height][width]);
 
 // .`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$
 const char *ASCII_BLOCKS[] = {
@@ -47,7 +48,7 @@ const char *ASCII_BLOCKS[] = {
     " .`',:;i~_-?|/cxUJQ0Owmdb*#MW8B@$",
 
     // Level 3: Balanced (default)
-    ".',:;+*?%S#",
+    " .',:;+*?%S#",
 
     // Level 4: High Contrast
     " .:-=+*#@",
@@ -74,7 +75,6 @@ void grayscale(int height, int width, pixelRGB image[height][width])
 }
 
 // generate ASCII image result
-// TODO: try to scale every input image down to a maximum size if it's oversized (but keep it the same if the input image is alrady small enough)
 void toAscii(int height, int width, pixelRGB image[height][width], FILE *out, int contrastLvl)
 {
     const char *BLOCKS = ASCII_BLOCKS[contrastLvl - 1];
@@ -109,7 +109,7 @@ void toAscii(int height, int width, pixelRGB image[height][width], FILE *out, in
 }
 
 // vector file mapping filter
-// TODO: the filter doesn't work at all. Try adding a Gaussian blur first and modifying the tuning coefficient to kernels.
+// TODO: need more development
 void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
 {
     const float radToDeg = 180 / (float) 3.14159265;
@@ -145,8 +145,8 @@ void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
     int xGrad;
     int yGrad;
     int gradMag;
-    int noiseThres = 100;
-    int strongThres = 250;
+    int noiseThres = 25;
+    int strongThres = 100;
     float angleWRTx;
 
     // preparing for the loop (similar to toAscii())
@@ -162,8 +162,8 @@ void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
         for (int col = startX; col <= endX; col += sampleW)
         {
             // apply the Sobel kernels to calculate brightness gradient
-            xGrad = tuningFactor * applyKernel(height, width, row, col, ref, SOBEL.matrixX);
-            yGrad = tuningFactor * applyKernel(height, width, row, col, ref, SOBEL.matrixY);
+            xGrad = applyKernel(height, width, row, col, ref, SCHARR_OPT.matrixX) / 256;
+            yGrad = applyKernel(height, width, row, col, ref, SCHARR_OPT.matrixY) / 256;
             gradMag = magnitude(xGrad, yGrad);
 
             // calculate angle value in degrees and make sure it is positive
@@ -204,10 +204,63 @@ void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
 }
 
 // blur filter
-// TODO: do Gaussian blurring
 void blur(int height, int width, pixelRGB image[height][width])
 {
-    printf("Hello, world\n");
+    // create a temporary image var to work with
+    pixelRGB (*ref)[width] = malloc(height * width * sizeof(pixelRGB));
+    if (ref == NULL)
+    {
+        printf("Blur filter failed: Out of memory!\n");
+        return;
+    }
+
+    // scan through each pixel
+    for (int row = 0; row < height; row++)
+    {
+        for (int col = 0; col < width; col++)
+        {
+            int rSum = 0;
+
+            int vNear;
+            int hNear;
+
+            for (int i = -2; i <= 2; i++)
+            {
+                for (int j = -2; j <= 2; j++)
+                {
+                    vNear = row + i;
+                    hNear = col + j;
+
+                    // clamping
+                    if (vNear < 0)
+                    {
+                        vNear = 0;
+                    }
+                    else if (vNear >= height)
+                    {
+                        vNear = height - 1;
+                    }
+
+                    if (hNear < 0)
+                    {
+                        hNear = 0;
+                    }
+                    else if (hNear >= width)
+                    {
+                        hNear = width - 1;
+                    }
+
+                    rSum += image[vNear][hNear].r * GAUSSIAN_KERNEL_5[i + 2][j + 2];
+                }
+            }
+            ref[row][col].r = rSum >> 8;
+            ref[row][col].g = ref[row][col].r;
+            ref[row][col].b = ref[row][col].r;
+        }
+    }
+    copyImage(height, width, ref, image);
+
+    free(ref);
 }
 
 // edge detection filter
@@ -222,26 +275,30 @@ void edge(int height, int width, pixelRGB image[height][width])
         return;
     }
 
-    for (int row = 0; row < height; row++)
-    {
-        for (int col = 0; col < width; col++)
-        {
-            ref[row][col] = image[row][col];
-        }
-    }
+    copyImage(height, width, image, ref);
 
-    //apply the Sobel op
+    int normalizeFactor = 1;
+    float gain = 1;
+    int threshold = 30;
+
     int gxVal;
     int gyVal;
+    int mag;
     for (int row = 0; row < height; row++)
     {
         for (int col = 0; col < width; col++)
         {
             gxVal = applyKernel(height, width, row, col, ref, SOBEL.matrixX);
             gyVal = applyKernel(height, width, row, col, ref, SOBEL.matrixY);
-            image[row][col].r = magnitude(gxVal, gyVal);
-            image[row][col].g = image[row][col].r;
-            image[row][col].b = image[row][col].r;
+            mag = clamp((int) (magnitude(gxVal, gyVal) / normalizeFactor) * gain);
+            // if the signal is to faint, set it to 0
+            if (mag < threshold)
+            {
+                mag = 0;
+            }
+            image[row][col].r = mag;
+            image[row][col].g = mag;
+            image[row][col].b = mag;
         }
     }
 
@@ -259,13 +316,7 @@ void emboss(int height, int width, pixelRGB image[height][width])
         return;
     }
 
-    for (int row = 0; row < height; row++)
-    {
-        for (int col = 0; col < width; col++)
-        {
-            ref[row][col] = image[row][col];
-        }
-    }
+    copyImage(height, width, image, ref);
 
     // "shine" light from 135 degree onto the image
     for (int row = 0; row < height; row++)
@@ -465,4 +516,13 @@ int shineLight(int height, int width, int row, int col, pixelRGB ref[height][wid
 bool isValid(int posY, int posX, int height, int width)
 {
     return (posY >= 0 && posY < height && posX >= 0 && posX < width);
+}
+
+void copyImage(int height, int width, pixelRGB src[height][width], pixelRGB dst[height][width])
+{
+    // determine the total Bytes of the image
+    size_t totalBs = height * width * sizeof(pixelRGB);
+
+    // copy the image
+    memcpy(dst, src, totalBs);
 }
