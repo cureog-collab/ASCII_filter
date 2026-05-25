@@ -385,7 +385,6 @@
 
                 const asciiText = Module.UTF8ToString(resultStrPtr);
                 
-                output.style.color = '#3fb950';
                 output.textContent = asciiText;
 
                 Module.ccall('jsFree', 'void', ['number'], [imgPtr]);
