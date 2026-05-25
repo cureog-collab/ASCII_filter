@@ -8,24 +8,44 @@ Based heavily on the foundational concepts I  learned from CS50 (more precisely,
 
 Beyond simple brightness-to-character mapping, this engine features several custom-built filters applied prior to ASCII conversion (invert, emboss, edge detection...).
 
-## Usage
-
+## Usage (Terminal)
 Run the project with the following syntax:
-`./ascii_filter [flags] <input_image_address> [max_width]`
+./ascii_filter [flags] <input_image_address> [max_width]
 
-**Arguments:**
-* `<input_image_address>`: Path to your input image (JPEG/PNG).
-* `[max_width]`: *(Optional)* Ceiling value (in px) for the output width. Defaults to `1920`.
+Arguments:
 
-**Currently Supported Flags:**
-* `-n`: Normal brightness-to-ASCII mode (Default).
-* `-b`: Gaussian Blur.
-* `-e`: Edge Detection (Highly recommended to use alongside `-b` to prevent noise artifacting, e.g., `-be`).
-* `-m`: Emboss filter.
-* `-v`: Vector Map *(Experimental)* (Renders gradient directions. Recommended to use with `-b`).
-* `-d [2-15]`: Atkinson Error Diffusion Dithering (defines the number of shading levels).
-* `-c [1-5]`: Adjust contrast stretching intensity (Default: 3).
-* `-i`: Invert colors.
+<input_image_address>: Path to your input image (JPEG/PNG).
 
-## Dependencies:
-Uses Sean Barrett's header-only stb_image.h to decode the original image files (JPEG/PNG).
+[max_width]: (Optional) Maximum width in pixels for the output. Defaults to 1920.
+
+Supported Flags:
+
+-n: Normal brightness-to-ASCII mode (Default).
+
+-b: Gaussian Blur.
+
+-e: Edge Detection (Recommended to use with -b, e.g., -be).
+
+-m: Emboss filter.
+
+-v: Vector Map *(Experimental)* (Recommended to use with -b).
+
+-d [2-15]: Atkinson Error Diffusion Dithering (defines shading levels).
+
+-c [1-5]: Adjust contrast stretching intensity (Default: 3).
+
+-i: Invert colors.
+
+## Usage (Web)
+Navigate to the deployed project URL.
+
+Upload an image via the "Choose File" button.
+
+Configure settings (Max width, contrast, filters) via the sidebar settings.
+
+Click "RENDER ASCII" to process the image using the C-Core engine and view the result in the ASCII tab.
+
+## Dependencies
+stb_image.h: Sean Barrett's header-only library for image decoding.
+
+Created by cureog
