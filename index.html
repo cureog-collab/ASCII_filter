@@ -1,216 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="stylesheet" href="style.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>C-based ASCII engine</title>
-    <style>
-        :root {
-            --bg: #0d1117;
-            --panel: #161b22;
-            --text: #c9d1d9;
-            --accent: #2ea043;
-            --accent-hover: #3fb950;
-            --border: #30363d;
-        }
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI',
-            Tahoma, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-        /* --- SIDEBAR --- */
-        #sidebar {
-            width: 320px;
-            background-color: var(--panel);
-            padding: 25px 20px;
-            border-right: 1px solid var(--border);
-            overflow-y: auto;
-            box-sizing: border-box;
-            flex-shrink: 0;
-        }
-        h2 { 
-            margin-top: 0;
-            font-size: 1.3rem;
-            color: #58a6ff; 
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 15px;
-        }
-        .control-group { margin-bottom: 20px; }
-        label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-            font-weight: bold;
-            align-items: center;
-        }
-        .value-display {
-            color: #8b949e;
-            font-weight: normal; }
-        
-        input[type="range"] { width: 100%; cursor: pointer; }
-        input[type="file"] { 
-            width: 100%;
-            margin-bottom: 20px;
-            font-size: 0.85rem;
-            padding: 8px;
-            background: #010409;
-            border: 1px solid var(--border);
-            border-radius: 5px;
-            color: var(--text);
-        }
-
-        /* --- INPUT BOX --- */
-        .number-input {
-            background: #010409;
-            border: 1px solid var(--border);
-            color: #58a6ff;
-            border-radius: 4px;
-            width: 60px;
-            padding: 2px 5px;
-            text-align: center;
-            font-weight: bold;
-            font-family: inherit;
-            outline: none;
-            transition: 0.2s;
-        }
-        .number-input:focus {
-            border-color: #58a6ff;
-        }
-        .number-input::-webkit-outer-spin-button,
-        .number-input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        .number-input[type=number] {
-            -moz-appearance: textfield;
-        }
-        
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        .checkbox-group input {
-            margin-right: 12px; cursor: pointer;
-            width: 16px;
-            height: 16px;
-        }
-        .checkbox-group label {
-            margin-bottom: 0;
-            font-weight: normal;
-            cursor: pointer;
-        }
-        
-        /* --- PRIMARY BUTTONS --- */
-        button.primary-btn {
-            width: 100%;
-            padding: 14px;
-            background-color: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: 0.2s;
-            margin-top: 20px;
-            letter-spacing: 1px;
-        }
-        button.primary-btn:hover {
-            background-color: var(--accent-hover);
-        }
-        button.primary-btn:disabled {
-            background-color: #21262d;
-            color: #8b949e;
-            cursor: not-allowed;
-        }
-
-        /* --- OUTPUT AREA --- */
-        #output-area {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            background-color: #010409;
-            overflow: hidden;
-        }
-
-        .tabs-header {
-            display: flex;
-            width: 100%; 
-            background: var(--panel);
-            border-bottom: 1px solid var(--border);
-        }
-        .tab-btn {
-            flex: 1;
-            background: transparent;
-            color: #8b949e;
-            border: none;
-            padding: 15px 20px;
-            font-size: 0.95rem;
-            font-weight: bold;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .tab-btn:hover {
-            background: #21262d;
-            color: var(--text);
-        }
-        .tab-btn.active {
-            color: #58a6ff;
-            border-bottom: 2px solid #58a6ff;
-            background: #010409;
-        }
-
-        .tab-content {
-            display: none;
-            flex-grow: 1;
-            width: 100%;
-            overflow: auto;
-            align-items:
-            center;
-            justify-content: center;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        .tab-content.active {
-            display: flex;
-            flex-direction: column;
-        }
-
-        #previewImage {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            border-radius: 8px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        }
-        pre {
-            margin: auto;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 10px;
-            line-height: 1;
-            color: #c9d1d9;
-            white-space: pre;
-            text-align: center;
-        }
-        .placeholder {
-            color: #484f58;
-            font-size: 1rem;
-            font-family: sans-serif;
-        }
-    </style>
 </head>
 <body>
 
@@ -261,6 +55,7 @@
         </div>
 
         <button id="renderBtn" class="primary-btn">RENDER ASCII</button>
+        <button id="downloadBtn" class="primary-btn" disabled style="background-color: #9ae2e9; margin-top: 10px;">DOWNLOAD OUTPUT ASCII FILE (.TXT)</button>
     </div>
 
     <div id="output-area">
@@ -386,6 +181,7 @@
                 const asciiText = Module.UTF8ToString(resultStrPtr);
                 
                 output.textContent = asciiText;
+                document.getElementById('downloadBtn').disabled = false;
 
                 Module.ccall('jsFree', 'void', ['number'], [imgPtr]);
                 Module.ccall('jsFree', 'void', ['number'], [resultStrPtr]); 
@@ -393,6 +189,23 @@
                 btn.disabled = false;
                 btn.innerText = 'RENDER ASCII';
             }, 50);
+        });
+
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+        const text = document.getElementById('asciiOutput').textContent;
+        
+        // allocate a virtual file in RAM
+        const blob = new Blob([text], { type: 'text/plain' });
+        
+        // create a temporary link to trigger download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'ascii_output.txt';
+        a.click();
+        
+        // free the temporary link
+        URL.revokeObjectURL(url);
         });
     </script>
 </body>
