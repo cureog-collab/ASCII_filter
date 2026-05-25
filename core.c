@@ -75,7 +75,7 @@ void grayscale(int height, int width, pixelRGB image[height][width])
 }
 
 // generate ASCII image result
-void toAscii(int height, int width, pixelRGB image[height][width], FILE *out, int contrastLvl)
+char *toAscii(int height, int width, pixelRGB image[height][width], FILE *out, int contrastLvl, bool isWeb)
 {
     const char *BLOCKS = ASCII_BLOCKS[contrastLvl - 1];
     const size_t MAX = strlen(BLOCKS);
@@ -90,6 +90,23 @@ void toAscii(int height, int width, pixelRGB image[height][width], FILE *out, in
     int endY = height - 1 - (sampleH / 2);
     int endX = width - 1 - (sampleW / 2);
 
+    // declare pointer a corresponding cursor index for web
+    char *resultStr = NULL;
+    int cursor = 0;
+
+    // check if the script is being run on web, then malloc enough memory accordingly
+    if (isWeb)
+    {
+        int maxRows = (endY - startY) / sampleH + 2;
+        int maxCols = (endX - startX) / sampleW + 2;
+        resultStr = malloc(maxRows * maxCols + maxRows + 1);
+        if (resultStr == NULL)
+        {
+            printf("Out of memory!\n");
+            return NULL;
+        }
+    }
+
     for (int row = startY; row <= endY; row += sampleH)
     {
         for (int col = startX; col <= endX; col += sampleW)
@@ -101,16 +118,39 @@ void toAscii(int height, int width, pixelRGB image[height][width], FILE *out, in
             image[row][col].r = bright;
             int charPos = (bright * MAX) >> 8;
 
-            // write the corresponding ASCII character to the output file
-            fputc(BLOCKS[charPos], out);
+            // output the corresponding ASCII map
+            char outChar = BLOCKS[charPos];
+
+            if (isWeb)
+            {
+                resultStr[cursor++] = outChar;
+            }
+            else
+            {
+                fputc(outChar, out);
+            }
         }
-        fputc('\n', out);
+        if (isWeb)
+        {
+            resultStr[cursor++] = '\n';
+        }
+        else
+        {
+            fputc('\n', out);
+        }
     }
+
+    if (isWeb && resultStr != NULL)
+    {
+        resultStr[cursor] = '\0';
+    }
+
+    return resultStr;
 }
 
 // vector file mapping filter
 // TODO: need more development
-void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
+char *vectorMap(int height, int width, pixelRGB image[height][width], FILE *out, bool isWeb)
 {
     const float radToDeg = 180 / (float) 3.14159265;
 
@@ -129,7 +169,7 @@ void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
     if (ref == NULL)
     {
         printf("Cannot allocate memory!\n");
-        return;
+        return NULL;
     }
 
     for (int row = 0; row < height; row++)
@@ -157,6 +197,24 @@ void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
     int endY = height - 1 - (sampleH / 2);
     int endX = width - 1 - (sampleW / 2);
 
+    // declare pointer a corresponding cursor index for web
+    char *resultStr = NULL;
+    int cursor = 0;
+
+    // check if the script is being run on web, then malloc enough memory accordingly
+    if (isWeb)
+    {
+        int maxRows = (endY - startY) / sampleH + 2;
+        int maxCols = (endX - startX) / sampleW + 2;
+        resultStr = malloc(maxRows * maxCols + maxRows + 1);
+        if (resultStr == NULL)
+        {
+            printf("Out of memory!\n");
+            free(ref);
+            return NULL;
+        }
+    }
+
     for (int row = startY; row <= endY; row += sampleH)
     {
         for (int col = startX; col <= endX; col += sampleW)
@@ -173,6 +231,8 @@ void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
                 angleWRTx += 180;
             }
 
+            char outChar;
+
             // if the change is so minute, considers it noise
             if (gradMag < noiseThres)
             {
@@ -183,7 +243,7 @@ void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
                     noiseIndx = noiseLvls - 1;
                 }
                 
-                fputc(NOISE[0], out);
+                outChar = NOISE[noiseIndx];
             }
             // draw
             else
@@ -194,13 +254,36 @@ void vectorMap(int height, int width, pixelRGB image[height][width], FILE *out)
                     angleIndex = 0;
                 }
                 int weightIndex = (gradMag > strongThres) ? 1 : 0;
-                fputc(VECTOR_BLOCKS[angleIndex][weightIndex], out);
+                outChar = VECTOR_BLOCKS[angleIndex][weightIndex];
+            }
+
+            if (isWeb)
+            {
+                resultStr[cursor++] = outChar;
+            }
+            else
+            {
+                fputc(outChar, out);
             }
         }
-        fputc('\n', out);
+        if (isWeb)
+        {
+            resultStr[cursor++] = '\n';
+        }
+        else
+        {
+            fputc('\n', out);
+        }
     }
 
     free(ref);
+
+    if (isWeb && resultStr != NULL)
+    {
+        resultStr[cursor] = '\0';
+    }
+    
+    return resultStr;
 }
 
 // blur filter

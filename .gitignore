@@ -1,4 +1,7 @@
-ascii_filter
+emsdk/
+.vscode/
 output/
 *.o
-.vscode/
+*.pyc
+__pycache__/
+.DS_Store

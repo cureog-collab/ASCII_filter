@@ -11,6 +11,9 @@ int naming(char *outName, char *name, bool flags[256], int contrastLevel, int di
 // define valid filter flags
 const char *filtersList = "nbvid:mec:";
 
+// main.c is not used to run the web version
+const bool isWeb = false;
+
 int main(int argc, char *argv[])
 {
 
@@ -174,11 +177,11 @@ int main(int argc, char *argv[])
     
     if (flags['v'])
     {
-        vectorMap(height, width, image, outputFile);
+        vectorMap(height, width, image, outputFile, isWeb);
     }
     else
     {
-        toAscii(height, width, image, outputFile, contrastLevel);
+        toAscii(height, width, image, outputFile, contrastLevel, isWeb);
     }
     // transform the whole thing to ASCII art
 
