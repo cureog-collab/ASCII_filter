@@ -1,6 +1,6 @@
 # terminal-based
 build:
-	gcc main.c core.c imageScale.c -o ascii_filter -lm
+	clang main.c core.c imageScale.c -o ascii_filter -lm -Werror
 
 # web-based (wasm)
 WASM_CC = emcc
